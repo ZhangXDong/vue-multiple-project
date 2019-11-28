@@ -1,0 +1,15 @@
+@import './reset.scss'; // 样式重置
+
+.icon {
+    width: 1em; 
+    height: 1em;
+    vertical-align: -0.15em;
+    fill: currentColor;
+    overflow: hidden;
+}
+
+.ld-fta-flex {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
