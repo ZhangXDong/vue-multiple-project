@@ -2,15 +2,10 @@
     <div class="ld-fta-action ld-fta-flex">
         <div class="ld-fta-action_go-back">
             <svg class="icon ld-fta-action_go-back-icon" aria-hidden="true" @click="goBack()">
-                <use xlink:href="#iconhuitui"></use>
+                <use xlink:href="#iconhuitui-blue"></use>
             </svg>
         </div>
         <router-view />
-        <!-- {{ $version.version + $version.timeTamp}}
-
-        {{ userID }}
-
-        {{ userInfo }} -->
     </div>
 </template>
 
@@ -42,15 +37,16 @@
 
 <style lang="scss" scoped>
     .ld-fta-action {
+        margin: -15px;
         .ld-fta-action_go-back {
             width: 100%;
             height: 50px;
-            background: #3F50B5; 
+            background: #e9ebf7;
             .ld-fta-action_go-back-icon {
-                color: #fff;
+                color: #3F50B5; 
                 font-size: 50px;
                 line-height: 50px;
-                width: 80px;
+                width: 100px;
             }
         }
     }

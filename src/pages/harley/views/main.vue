@@ -1,9 +1,11 @@
 <template>
-    <div>
+    <div class="ld-fta-content ld-fta-flex">
         <!-- 头部 -->
         <fta-header></fta-header>
         <!-- 内容区 -->
-        <router-view />
+        <div class="ld-fta-flex ld-fta-container">
+            <router-view />
+        </div>
     </div>
 </template>
 
@@ -12,10 +14,7 @@
     export default {
         components: {
             ftaHeader,
-        },
-        created() {
-            
-        },
+        }
     }
 </script>
 

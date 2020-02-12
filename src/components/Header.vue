@@ -16,7 +16,10 @@
                         工作状态 : 
                     </div>
                     <div class="ld-fta-header_work-status-content">
-                        {{ reconnectPrompt ? '连接系统中' : workingStatus }}
+                        <span :class="{'ld-fta-connecting': !reconnectPrompt}">
+                            <span class="el-icon-warning" v-show="!reconnectPrompt"></span>
+                            <span class="ld-fta-status">{{ !reconnectPrompt ? '连接系统中' : workingStatus }}</span>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -44,15 +47,16 @@
         </div>
         <!-- 用户/车辆编号/操作 -->
         <div class="ld-fta-header_robot-action ld-fta-header_content">
-            <div>
-                <svg class="icon" aria-hidden="true">
+            <div class="user-info">
+                <svg class="icon head-portrait" aria-hidden="true">
                     <use xlink:href="#iconyonghu"></use>
-                </svg>    
+                </svg>   
+                <loginComp :showLogin="needLogin"></loginComp>
             </div>
             <div class="ld-fta-header_robotNo">
-                {{ robotNo }}
+                {{ robotInfo && robotInfo.robotId }}
             </div>
-            <div class="ld-fta-header_menu-action" @click="$route.path !== '/action' && $route.path !== '/menu' && $route.path !== '/relocation' ? $router.push('/action') : false">
+            <div class="ld-fta-header_menu-action" @click="toMenu">
                 <svg class="icon" aria-hidden="true">
                     <use xlink:href="#iconcaidan"></use>
                 </svg> 
@@ -62,35 +66,83 @@
 </template>
 
 <script>
+    import { mapGetters, mapMutations, mapActions } from 'vuex'
     import { formatDate } from '@util/util.js'
-
+    import { getToken } from '@util/auth.js'
+    import { Message } from 'element-ui'
+    import msgBox from '@/components/msgBox.vue'
+    import loginComp from '@/components/loginComp.vue'
     export default {
+        components: {
+            msgBox,
+            loginComp
+        },
         data() {
             return {
-                workingMode: '系统调度', // 工作模式  vuex
-                reconnectPrompt: true, // 是否重连中  vuex
-                workingStatus: '到达', // 工作状态  vuex
-                positionSuccess: false, // 定位是否成功 vuex
-                robotInfo: null, // vuex
+                userInfo: JSON.parse(localStorage.getItem("userInfo")) || {},
+                token: getToken(),
+                getCurDateTimer: null,
                 curDate: null,
                 connectSignalStrength: '#iconsignal',
                 chargeWidth: '100%', // 电量
                 chargeBackground: '#fff', // 电池颜色
                 robotNo: 108, // vuex
+
+                showMsgBox: false,
+                msgBoxObj: {
+                    tipsText: '确认退出登录？',
+                    tipsColor: 'red',
+                    cancelBtnText: '取消',
+                    confirmBtnText: '确认',
+                    cancelFunc: () => {
+                        this.showMsgBox = false
+                    },
+                    confirmFunc: () => {
+                        this.showMsgBox = false
+                    }
+                }
             }
         },
-        created() {
-            this.init()
+        watch:{
+            robotInfo: {
+                handler(newVal, oldVal) {
+                    if(newVal) {
+                        this.init()
+                    }
+                },
+                immediate: true,
+                deep: true
+            },
+        },
+        computed: {
+            ...mapGetters([
+                'workingMode',
+                'workingStatus',
+                'reconnectPrompt',
+                'positionSuccess',
+                'robotInfo',
+            ]),
+            needLogin() {
+                const needLogin = process.env.ENV_NEEDLOGIN
+                const curEnv = process.env.ENV_NAME
+                let hasLogin = needLogin.some((item, index) => {
+                    if (curEnv.indexOf(item) > -1) {
+                        return true
+                    }
+                })
+                return hasLogin
+            }
         },
         methods: {
+            ...mapActions([
+                'logoutByAccount'
+            ]),
             init() {
                 this.getCurDate()
                 // 工作模式
                 if( this.robotInfo ) {
-                    //车号
-                    this.robotId = this.robotInfo.robotId
                     // wifi信号强度
-                    this.connectSignalStrength += this.robotInfo ? this.robotInfo.wifiSignalStrength : 4
+                    this.connectSignalStrength = this.robotInfo ? '#iconsignal'+this.robotInfo.wifiSignalStrength : '#iconsignal4'
                     // 电量
                     this.chargeWidth = this.robotInfo.robotBattery.remainingPercent +'%'
                     this.chargeBackground = this.robotInfo.robotBattery.remainingPercent < 20 ? "red" : "#fff"
@@ -106,8 +158,23 @@
             },
             goAction(){
                 this.$router.push("./action")
-            }
+            },
+            toMenu() {
+                let token = getToken()
+                console.log('token', token);
+                let needLogin = process.env.ENV_NEEDLOGIN.some((shortName, index) => {
+                    return process.env.ENV_NAME.indexOf(shortName) > -1
+                })
+                if (!token && needLogin) {
+                    this.$router.push('/login')
+                    return false
+                }
+                this.$route.path !== '/action' && this.$route.path !== '/menu' && this.$route.path !== '/relocation' ? this.$router.push('/action') : false
+            },
         },
+        mounted(){
+            this.init()
+        }
     }
 </script>
 
@@ -122,7 +189,7 @@
             justify-content: space-between;
             box-sizing: border-box;
             line-height: 40px;
-            font-size: 18px;
+            font-size: 24px;
             position: relative;
             left: 0;
             top: 0;
@@ -135,6 +202,26 @@
                     margin-left: 20px;
                     .ld-fta-header_mode-title, .ld-fta-header_work-status-title {
                         margin-right: 5px;
+                    }
+                    .ld-fta-header_work-status-content {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        .ld-fta-connecting {
+                            background: red;
+                            padding: 0 5px;
+                            width: 100%;
+                            overflow: hidden;
+                            line-height: 32px;
+                            display: flex;
+                            align-items: center;
+                            span {
+                                float: left;
+                            }
+                            .ld-fta-status {
+                                font-size: 22px;
+                            }
+                        }
                     }
                 }
             }
@@ -181,13 +268,49 @@
                     }
                 }
             }
+            .user-info {
+                width: 40%;
+                font-size: .088rem;
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                .head-portrait {
+                    width: .6rem;
+                    height: .6rem;
+                }
+                .code-icon {
+                    font-size: .14rem;
+                    margin-left: .07rem;
+                }
+                .logout-box {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-size: .3rem;
+                    .username {
+                        margin: 0 .05rem;
+                    }
+                    .logout {
+                        font-size: .3rem;
+                        color: rgb(255, 46, 46);
+                    }
+                }
+            }
+            .ld-fta-header_robotNo {
+                flex: 1;
+                text-align: center;
+            }
+            .ld-fta-header_menu-action {
+                width: 40%;
+                text-align: right;
+            }
         }
         .ld-fta-header_robot-action {
             height: 60px;
             font-size: 36px;
             padding: 0 20px;
             .icon {
-                font-size: 50px;
+                font-size: 64px;
             }
         }
     }

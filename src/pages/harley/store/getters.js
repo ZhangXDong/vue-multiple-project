@@ -1,6 +1,8 @@
-import publicGetters from '@/store/getters.js';
+import publicGetters from '@/store/getters.js'
+
 const getters = {
     ...publicGetters,
-    userID: state => state.testDemo1.userID,
+    distributorInfo: state => state.harleyData.distributorInfo,
 }
+
 export default getters

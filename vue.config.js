@@ -1,6 +1,9 @@
 const path = require('path')
-const { env } = require('./util/envConfig.js')
-const pageMethod = require('./util/getPages.js')
+const { env, needLogin } = require('./util/breakUp/envConfig.js')
+const pageMethod = require('./util/breakUp/getPages.js')
+const urlMap = require('./util/getUrl.js')
+const git = require('git-rev-sync')
+const version = git.tag().replace(/[^._0-9]+/ig,"")
 
 module.exports = {
 	publicPath: process.env.NODE_ENV === 'production' ? './': '/',
@@ -17,9 +20,17 @@ module.exports = {
 		extract: true,
 		sourceMap: false
 	},
+	//	解决 sockjs-node 404 问题
+	devServer: {
+        host: '0.0.0.0',
+        port: 8080,
+    },
 	chainWebpack: config => {
 		config.plugin('define').tap(args => {
-			args[0]['process.env'].ENV = JSON.stringify(env)
+			args[0]['process.env'].ENV_NAME = JSON.stringify(env)
+			args[0]['process.env'].URL_MAP = JSON.stringify(urlMap.urlMap[env])
+			args[0]['process.env'].VERSION = JSON.stringify(version)
+			args[0]['process.env'].ENV_NEEDLOGIN = JSON.stringify(needLogin)
 			return args
 		})
 
