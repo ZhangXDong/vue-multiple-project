@@ -18,7 +18,7 @@ const callbackFile = function( src, dst ){
                 console.log(error)
                 return false
             }
-            fs.unlink(src,function () {// css删除成功         
+            fs.unlink(src, function () {// css删除成功         
                 const noRemove = fs.existsSync('./dist/css')
                 if(noRemove){
                     const files = fs.readdirSync('./dist/css')
@@ -36,7 +36,7 @@ glob.sync( './dist/css/*.css').forEach((filepath,name) => {
     const fileNameList = filepath.split('.')
     const fileName = fileNameList[1].split('/')[3]// 多页面页面目录
     const copyName = filepath.split('/')[3]
-    const changeDirectory = `./dist/${fileName}/css`// 多页面JS文件地存放址
+    const changeDirectory = `./dist/${fileName}/css`// 多页面CSS文件地存放址
     if(envConfig.indexOf(fileName) > -1){
         fs.exists( changeDirectory, function( exists ){
             if( exists ){// 已存在
