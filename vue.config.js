@@ -3,7 +3,7 @@ const { env, needLogin } = require('./util/breakUp/envConfig.js')
 const pageMethod = require('./util/breakUp/getPages.js')
 const urlMap = require('./util/getUrl.js')
 const git = require('git-rev-sync')
-const version = git.tag().replace(/[^._0-9]+/ig,"")
+const version = git.tag()
 
 module.exports = {
 	publicPath: process.env.NODE_ENV === 'production' ? './': '/',

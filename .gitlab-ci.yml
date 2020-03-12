@@ -33,6 +33,42 @@ release log:
     - export NIGHT_PATH=/oss/nightly/$(date +%Y%m%d)/cluster
     - /oss/nightly/git_stat.sh
 
+release build:
+  stage: build
+  only:
+    - /^dev-.*$/
+    - /^test-.*$/
+    - /^tiemeng-.*$/
+    - /^preprod-.*/
+  except:
+    - branches
+  script:
+    - ENV=${CI_COMMIT_TAG%%-*} suffix=${CI_COMMIT_TAG#*$ENV-} PROJECT=${suffix%%-*}
+    - echo ${PROJECT}${ENV^}
+    - npm install
+    - npm run build --${PROJECT}${ENV^}
+    - echo tag:${CI_COMMIT_TAG}-buildtime:$(date +%Y%m%d%H%M%S) > dist/.version.html
+  artifacts:
+    paths:
+      - dist
+
+delpoy to env:
+  image: joec4i/ossutil
+  stage: deploy
+  environment:
+    name: dev
+  only:
+    - /^dev-.*$/
+    - /^test-.*$/
+    - /^tiemeng-.*$/
+    - /^preprod-.*/
+  except:
+    - branches
+  script:
+    - ENV=${CI_COMMIT_TAG%%-*} suffix=${CI_COMMIT_TAG#*$ENV-} PROJECT=${suffix%%-*}
+    - echo "fe.${PROJECT}.${ENV}.internal.forwardx.com"
+    - ossutil  -e oss-cn-beijing.aliyuncs.com --access-key-id ${ALIYUN_OSS_ACCESS_KEY_ID} --access-key-secret ${ALIYUN_OSS_ACCESS_KEY_SECRET}  cp -r -f  dist oss://k8s-test-dev-nginx-static/fe.${PROJECT}.${ENV}.internal.forwardx.com
+
 release build test daily build:
   stage: build
   only:
@@ -41,9 +77,14 @@ release build test daily build:
     - branches
   script:
     - ENV=test suffix=${CI_COMMIT_TAG#daily-build-*} PROJECT=${suffix%%-*}
+    - |
+      if [ "$PROJECT" = "xinwangda" ]; then
+        export ENV=tiemeng
+      fi
     - echo ${PROJECT}${ENV^}
     - npm install
     - npm run build --${PROJECT}${ENV^}
+    - echo tag:${CI_COMMIT_TAG}-buildtime:$(date +%Y%m%d%H%M%S) > dist/.version.html
   artifacts:
     paths:
       - dist
@@ -67,36 +108,14 @@ delpoy to test daily build:
     - echo fe.${PROJECT}.${ENV}.internal.forwardx.com
     - ossutil  -e oss-cn-beijing.aliyuncs.com --access-key-id ${ALIYUN_OSS_ACCESS_KEY_ID} --access-key-secret ${ALIYUN_OSS_ACCESS_KEY_SECRET}  cp -r -f  dist oss://k8s-test-dev-nginx-static/fe.${PROJECT}.${ENV}.internal.forwardx.com
 
-release build:
+upload daily pipeline:
+  image: joec4i/ossutil
   stage: build
   only:
-    - /^dev-.*$/
-    - /^test-.*$/
-    - /^tiemeng.*$/
+    - /^daily-build.*$/
   except:
     - branches
   script:
-    - ENV=${CI_COMMIT_TAG%%-*} suffix=${CI_COMMIT_TAG#*$ENV-} PROJECT=${suffix%%-*}
-    - echo ${PROJECT}${ENV^}
-    - npm install
-    - npm run build --${PROJECT}${ENV^} ${PROJECT}
-  artifacts:
-    paths:
-      - dist
-
-delpoy to env:
-  image: joec4i/ossutil
-  stage: deploy
-  environment:
-    name: dev
-  only:
-    - /^dev-.*$/
-    - /^test-.*$/
-    - /^tiemeng.*$/
-
-  except:
-    - branches
-  script:
-    - ENV=${CI_COMMIT_TAG%%-*} suffix=${CI_COMMIT_TAG#*$ENV-} PROJECT=${suffix%%-*}
-    - echo "fe.${PROJECT}.${ENV}.internal.forwardx.com"
-    - ossutil  -e oss-cn-beijing.aliyuncs.com --access-key-id ${ALIYUN_OSS_ACCESS_KEY_ID} --access-key-secret ${ALIYUN_OSS_ACCESS_KEY_SECRET}  cp -r -f  dist oss://k8s-test-dev-nginx-static/fe.${PROJECT}.${ENV}.internal.forwardx.com
+    - suffix=${CI_COMMIT_TAG#daily-build-*} PROJECT=${suffix%%-*}
+    - echo ${CI_PIPELINE_URL} > .pipeline_${CI_PROJECT_NAME}
+    - ossutil  -e oss-cn-beijing.aliyuncs.com --access-key-id ${ALIYUN_OSS_ACCESS_KEY_ID} --access-key-secret ${ALIYUN_OSS_ACCESS_KEY_SECRET}  cp -r -f  .pipeline_${CI_PROJECT_NAME} oss://forwardx-nightly-pkg/nightly/$(date --date='TZ="Asia/Shanghai"' +%Y%m%d)/cluster/log/pipeline/${PROJECT}-${CI_PROJECT_NAME}.txt
